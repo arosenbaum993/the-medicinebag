@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Medicine Bag — Unit Test</title>
+<style>
+  :root{
+    --paper:#f1f3ef;
+    --panel:#fbfaf6;
+    --ink:#1e2622;
+    --ink-soft:#5b645e;
+    --rule:#d5d9d2;
+    --sage:#4f7250;
+    --sage-pale:#e7efe5;
+    --iron:#464e54;
+    --leather:#8a6a44;
+    --flag:#b4552f;
+    --passage-size:18px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-text-size-adjust:100%;
+  }
+  button{font:inherit;cursor:pointer}
+  :focus-visible{outline:3px solid var(--sage);outline-offset:2px}
+
+  /* ---------- shell ---------- */
+  .screen{display:none}
+  .screen.on{display:block}
+
+  /* ---------- start ---------- */
+  .start-wrap{max-width:640px;margin:0 auto;padding:56px 24px 80px}
+  .story-title{
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:clamp(34px,7vw,52px);
+    line-height:1.05;letter-spacing:-.01em;margin:0;
+  }
+  .byline{font-family:Georgia,serif;font-style:italic;color:var(--ink-soft);margin:14px 0 0}
+  .start-rule{height:3px;background:var(--leather);width:70px;margin:28px 0 32px;border-radius:2px}
+  .start-lead{font-size:17px;max-width:56ch}
+  .checklist{list-style:none;padding:0;margin:22px 0 34px;max-width:56ch}
+  .checklist li{padding:9px 0 9px 26px;position:relative;border-bottom:1px solid var(--rule)}
+  .checklist li::before{content:"";position:absolute;left:0;top:17px;width:9px;height:9px;background:var(--sage);border-radius:50%}
+  .field{margin:0 0 18px;max-width:380px}
+  .field label{display:block;font-weight:600;margin-bottom:6px}
+  .field input{
+    width:100%;padding:12px 14px;font:inherit;font-size:17px;
+    border:2px solid var(--rule);border-radius:6px;background:#fff;color:var(--ink);
+  }
+  .field input:focus{border-color:var(--sage);outline:none}
+  .btn{
+    background:var(--sage);color:#fff;border:none;border-radius:6px;
+    padding:14px 30px;font-size:17px;font-weight:600;
+  }
+  .btn:hover{background:#3f5e40}
+  .btn[disabled]{background:#a8b3aa;cursor:not-allowed}
+  .btn-quiet{background:none;color:var(--iron);border:2px solid var(--rule);padding:12px 22px;font-weight:600;border-radius:6px}
+  .btn-quiet:hover{border-color:var(--iron)}
+  .hint{color:var(--flag);margin:12px 0 0;font-weight:600;display:none}
+  .hint.on{display:block}
+
+  /* ---------- test header ---------- */
+  header.bar{
+    position:sticky;top:0;z-index:20;background:var(--panel);
+    border-bottom:1px solid var(--rule);
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    padding:10px 20px;
+  }
+  .bar-name{font-weight:700}
+  .bar-name span{font-weight:400;color:var(--ink-soft)}
+  .prog{flex:1;min-width:150px;display:flex;align-items:center;gap:10px}
+  .prog-track{flex:1;height:8px;background:#e2e6df;border-radius:99px;overflow:hidden;min-width:70px}
+  .prog-fill{height:100%;width:0;background:var(--sage);border-radius:99px;transition:width .25s ease}
+  .prog-text{font-size:14px;color:var(--ink-soft);white-space:nowrap}
+  .sizer{display:flex;gap:4px}
+  .sizer button{
+    width:34px;height:34px;border:1px solid var(--rule);background:#fff;border-radius:5px;
+    color:var(--iron);font-weight:700;line-height:1;
+  }
+  .sizer button:hover{border-color:var(--iron)}
+  .tabs{display:none;gap:6px}
+  .tabs button{
+    border:1px solid var(--rule);background:#fff;border-radius:5px;padding:8px 16px;font-weight:600;color:var(--iron);
+  }
+  .tabs button[aria-pressed="true"]{background:var(--iron);color:#fff;border-color:var(--iron)}
+
+  /* ---------- split ---------- */
+  .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;align-items:start}
+  .pane-passage{
+    background:var(--panel);border-right:1px solid var(--rule);
+    height:calc(100vh - 56px);overflow-y:auto;padding:32px 34px 90px;
+  }
+  .pane-questions{height:calc(100vh - 56px);overflow-y:auto;padding:32px 34px 120px}
+
+  /* ---------- passage ---------- */
+  .passage{max-width:60ch;font-family:Georgia,"Times New Roman",serif;font-size:var(--passage-size);line-height:1.8}
+  .passage h1{font-size:1.5em;margin:0 0 4px;line-height:1.2}
+  .passage .sub{font-style:italic;color:var(--ink-soft);font-size:.85em;margin:0 0 22px}
+  .note{
+    background:#fff;border-left:4px solid var(--leather);
+    padding:14px 18px;margin:0 0 24px;font-size:.85em;line-height:1.65;color:var(--ink-soft);
+  }
+  .words{border:1px solid var(--rule);background:#fff;padding:16px 18px;margin:0 0 26px;font-size:.85em}
+  .words h2{font-family:inherit;font-size:1em;margin:0 0 10px;letter-spacing:.01em}
+  .words dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px}
+  .words dt{font-weight:700}
+  .words dd{margin:0;color:var(--ink-soft)}
+  .purpose{background:var(--sage-pale);padding:14px 18px;margin:0 0 30px;font-size:.9em;border-radius:4px}
+  .purpose strong{display:block;margin-bottom:3px}
+  .para{display:flex;gap:14px;margin:0 0 22px;scroll-margin-top:20px;border-radius:4px;transition:background .3s ease}
+  .para.lit{background:#fdf3d8}
+  .para-num{
+    flex:0 0 auto;font-family:-apple-system,Segoe UI,Roboto,sans-serif;
+    font-size:12px;font-weight:700;color:var(--iron);
+    background:#e9ece6;border-radius:4px;padding:2px 7px;height:fit-content;margin-top:.45em;
+  }
+  .para-body{flex:1;min-width:0}
+  .para-body p{margin:0 0 .7em}
+  .para-body p:last-child{margin-bottom:0}
+
+  /* ---------- questions ---------- */
+  .q-wrap{max-width:60ch}
+  .part{margin:0 0 10px;padding-top:26px;border-top:2px solid var(--iron)}
+  .part:first-child{padding-top:0;border-top:none}
+  .part h2{font-size:19px;margin:0 0 2px}
+  .part .part-pts{color:var(--ink-soft);font-size:14px;margin:0 0 20px}
+  .q{padding:20px 0;border-bottom:1px solid var(--rule)}
+  .q-head{display:flex;gap:12px;align-items:baseline;margin-bottom:14px}
+  .q-num{font-weight:700;color:var(--iron);flex:0 0 auto}
+  .q-stem{margin:0;font-size:16.5px;line-height:1.5}
+  .q-pts{color:var(--ink-soft);font-size:13px;font-weight:400;white-space:nowrap;margin-left:auto}
+  .ref{
+    background:var(--sage-pale);border:1px solid #c6d8c3;color:#3f5e40;
+    border-radius:4px;padding:1px 6px;font-weight:700;font-size:.9em;cursor:pointer;
+  }
+  .ref:hover{background:#d4e5d0}
+  .opts{display:grid;gap:8px}
+  .opt{
+    display:flex;gap:12px;align-items:flex-start;
+    border:2px solid var(--rule);border-radius:6px;background:#fff;
+    padding:12px 14px;cursor:pointer;
+  }
+  .opt:hover{border-color:#b6bdb4}
+  .opt input{margin:2px 0 0;width:19px;height:19px;accent-color:var(--sage);flex:0 0 auto}
+  .opt-letter{font-weight:700;color:var(--iron);flex:0 0 auto}
+  .opt.picked{border-color:var(--sage);background:var(--sage-pale)}
+  .q.missing{background:#fdf0ea;box-shadow:-14px 0 0 #fdf0ea,14px 0 0 #fdf0ea}
+  .q.missing .q-num{color:var(--flag)}
+  .frame{
+    background:var(--sage-pale);padding:12px 16px;border-radius:4px;
+    font-size:14.5px;line-height:1.6;margin:0 0 12px;
+  }
+  .frame b{display:block;margin-bottom:3px}
+  textarea{
+    width:100%;min-height:170px;padding:14px;font:inherit;font-size:16px;line-height:1.6;
+    border:2px solid var(--rule);border-radius:6px;background:#fff;color:var(--ink);resize:vertical;
+  }
+  textarea:focus{border-color:var(--sage);outline:none}
+  .wc{font-size:13px;color:var(--ink-soft);margin:6px 0 0;text-align:right}
+  .submit-block{padding:34px 0 0}
+  .saved{font-size:13px;color:var(--ink-soft);margin:14px 0 0}
+
+  /* ---------- end screens ---------- */
+  .end-wrap{max-width:560px;margin:0 auto;padding:80px 24px}
+  .end-wrap h1{font-family:Georgia,serif;font-size:34px;margin:0 0 14px}
+  .end-wrap p{font-size:17px;color:var(--ink-soft);max-width:52ch}
+  .dot{width:56px;height:56px;border-radius:50%;background:var(--sage);margin:0 0 26px;
+       display:flex;align-items:center;justify-content:center}
+  .dot svg{width:28px;height:28px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .dot.bad{background:var(--flag)}
+  .dump{
+    background:#fff;border:1px solid var(--rule);border-radius:6px;padding:16px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.7;
+    white-space:pre-wrap;word-break:break-word;margin:20px 0;display:none;
+  }
+  .dump.on{display:block}
+
+  @media (max-width:900px){
+    .split{grid-template-columns:1fr}
+    .pane-passage,.pane-questions{height:auto;overflow:visible;padding:24px 18px 60px;border-right:none}
+    .pane-passage{display:none;border-bottom:1px solid var(--rule)}
+    .pane-questions{display:none}
+    .split[data-view="story"] .pane-passage{display:block}
+    .split[data-view="questions"] .pane-questions{display:block}
+    .tabs{display:flex}
+    header.bar{padding:8px 14px;gap:10px}
+    .bar-name{width:100%;font-size:14px}
+    .prog{order:3;width:100%;min-width:0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= START ================= -->
+<section class="screen on" id="screen-start">
+  <div class="start-wrap">
+    <h1 class="story-title">The Medicine Bag</h1>
+    <p class="byline">Unit test on character, theme, and the Hero&rsquo;s Journey</p>
+    <div class="start-rule"></div>
+
+    <p class="start-lead">The story is on the left side of your screen the whole time. You can read it again as often as you want.</p>
+
+    <ul class="checklist">
+      <li>16 questions. 40 points.</li>
+      <li>14 multiple choice, then 2 written answers.</li>
+      <li>Green numbers like <span class="ref">[7]</span> jump you to that part of the story.</li>
+      <li>Nothing is timed. Take the time you need.</li>
+    </ul>
+
+    <div class="field">
+      <label for="f-name">Your first and last name</label>
+      <input id="f-name" type="text" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label for="f-class">Class period</label>
+      <input id="f-class" type="text" autocomplete="off" spellcheck="false">
+    </div>
+    <p class="hint" id="start-hint">Type your name and class period before you begin.</p>
+    <button class="btn" id="btn-start">Start the test</button>
+  </div>
+</section>
+
+<!-- ================= TEST ================= -->
+<section class="screen" id="screen-test">
+  <header class="bar">
+    <div class="bar-name" id="bar-name"></div>
+    <div class="tabs" role="group" aria-label="Switch view">
+      <button id="tab-story" aria-pressed="false">Story</button>
+      <button id="tab-questions" aria-pressed="true">Questions</button>
+    </div>
+    <div class="prog">
+      <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+      <div class="prog-text" id="prog-text" aria-live="polite">0 of 16 answered</div>
+    </div>
+    <div class="sizer" role="group" aria-label="Story text size">
+      <button id="size-down" title="Smaller story text">A&minus;</button>
+      <button id="size-up" title="Bigger story text">A+</button>
+    </div>
+  </header>
+
+  <div class="split" id="split" data-view="questions">
+
+    <!-- ---------- passage ---------- -->
+    <div class="pane-passage" id="pane-passage">
+      <article class="passage">
+        <h1>The Medicine Bag</h1>
+        <p class="sub">Based on the short story by Virginia Driving Hawk Sneve</p>
+
+        <div class="note">Virginia Driving Hawk Sneve is a member of the Rosebud Sioux Tribe. This version keeps the events of her story but uses shorter sentences and simpler words. It is not the full text.</div>
+
+        <div class="words">
+          <h2>Words to know</h2>
+          <dl>
+            <dt>reservation</dt><dd>land set aside for a Native nation to live on and govern</dd>
+            <dt>medicine bag</dt><dd>a small leather pouch that holds sacred items and is passed down in a family</dd>
+            <dt>sacred</dt><dd>holy, treated with deep respect</dd>
+            <dt>sage</dt><dd>a plant used in Sioux ceremonies</dd>
+            <dt>blacksmith</dt><dd>a person who shapes iron into tools</dd>
+          </dl>
+        </div>
+
+        <div class="purpose"><strong>Purpose for reading</strong>Notice what Martin does at the beginning, in the middle, and at the end of the story.</div>
+
+        <div class="para" id="p1"><div class="para-num">1</div><div class="para-body">
+          <p>Martin and his little sister Cheryl lived in a city. Their great-grandfather, Joe Iron Shell, lived far away on the Rosebud Reservation in South Dakota. Every summer the family drove out to visit him.</p>
+        </div></div>
+
+        <div class="para" id="p2"><div class="para-num">2</div><div class="para-body">
+          <p>Martin told his friends stories about Grandpa. He showed them the small drum Grandpa had made. He taught them the Sioux chant Grandpa had taught him. His friends were impressed.</p>
+        </div></div>
+
+        <div class="para" id="p3"><div class="para-num">3</div><div class="para-body">
+          <p>Martin had one picture of Grandpa. He kept it in a drawer. He never took it out.</p>
+        </div></div>
+
+        <div class="para" id="p4"><div class="para-num">4</div><div class="para-body">
+          <p>One hot afternoon, Martin heard dogs barking. He walked to the curb. An old man in a tall black hat was coming down the middle of the street. Kids and dogs followed him. Martin knew that hat.</p>
+          <p>Martin stood still for a long moment. Then the dogs snapped at the old man&rsquo;s legs. Martin ran into the street and chased them off.</p>
+          <p>&ldquo;Grandpa,&rdquo; he said.</p>
+          <p>Grandpa set down his suitcase and shook Martin&rsquo;s hand. Neighbors watched from their porches. Grandpa wore a wrinkled black suit and a bright red shirt. Martin looked down at the sidewalk. Then he looked at Grandpa&rsquo;s face. Grandpa&rsquo;s hand was shaking. Martin picked up the suitcase and walked him to the house.</p>
+        </div></div>
+
+        <div class="para" id="p5"><div class="para-num">5</div><div class="para-body">
+          <p>Cheryl came running out the front door. &ldquo;Grandpa! You came to see us!&rdquo; She threw her arms around him. Martin watched her do it. Then Grandpa&rsquo;s knees gave out and he fell.</p>
+        </div></div>
+
+        <div class="para" id="p6"><div class="para-num">6</div><div class="para-body">
+          <p>The doctor said Grandpa was worn out from the heat. When Grandpa woke up, he explained. He had ridden a bus for two and a half days. Then he had walked, because he could not find the street. He was eighty-six years old. He had never left the reservation before.</p>
+        </div></div>
+
+        <div class="para" id="p7"><div class="para-num">7</div><div class="para-body">
+          <p>The next day Grandpa spoke to the whole family. &ldquo;It is soon time for Martin to have the medicine bag.&rdquo;</p>
+          <p>Martin knew the bag. He had felt it on a cord around Grandpa&rsquo;s neck. It was small and worn and dirty.</p>
+          <p>Martin thought about gym class. He thought about the pool. He pictured his friends looking at the bag.</p>
+          <p>Then he stood up and walked to the bed.</p>
+          <p>&ldquo;Not now,&rdquo; Grandpa said. &ldquo;It is not time. Now I will sleep.&rdquo;</p>
+        </div></div>
+
+        <div class="para" id="p8"><div class="para-num">8</div><div class="para-body">
+          <p>Grandpa stayed for two months. Martin&rsquo;s friends asked to meet him. Martin said Grandpa was resting. He said it again the next week, and the week after that.</p>
+          <p>Cheryl brought her friends over every afternoon. They sat on the patio and listened to Grandpa&rsquo;s stories.</p>
+        </div></div>
+
+        <div class="para" id="p9"><div class="para-num">9</div><div class="para-body">
+          <p>One day Martin&rsquo;s friend Hank came to the door with the whole group. &ldquo;We&rsquo;re here to see the famous Indian of Bell View Drive.&rdquo;</p>
+          <p>Grandpa was on the patio in his best clothes. He wore a beaded vest, moccasins, and the black hat with the feather.</p>
+          <p>Martin waited.</p>
+          <p>Grandpa stood up and shook every hand. &ldquo;Hau, hoksilas,&rdquo; he said. Boys.</p>
+          <p>Nobody laughed. The boys sat down. Grandpa talked all afternoon about hunting the deer whose skin became his vest. Martin&rsquo;s mother finally sent everyone home for dinner.</p>
+          <p>&ldquo;Can we come back?&rdquo; Hank asked.</p>
+        </div></div>
+
+        <div class="para" id="p10"><div class="para-num">10</div><div class="para-body">
+          <p>That evening Grandpa called Martin to his room. &ldquo;Tomorrow it will be time.&rdquo;</p>
+          <p>Martin did not sleep much.</p>
+        </div></div>
+
+        <div class="para" id="p11"><div class="para-num">11</div><div class="para-body">
+          <p>The room was dim the next day. Grandpa told Martin the story of the bag.</p>
+          <p>Long ago, Grandpa&rsquo;s father went alone to a hill. He fasted and prayed for three days. In a dream he saw the white man&rsquo;s iron. Later he found a broken iron kettle by a stream. He put a piece of it in a bag made of elk skin.</p>
+          <p>Years later, soldiers sent him to a boarding school far from home. There he was put to work in the blacksmith shop. He spent the rest of his life working the white man&rsquo;s iron.</p>
+          <p>Grandpa&rsquo;s father gave him the bag. Now Grandpa held it out to Martin.</p>
+        </div></div>
+
+        <div class="para" id="p12"><div class="para-num">12</div><div class="para-body">
+          <p>&ldquo;Inside is the iron, a stone from the hill, and sacred sage,&rdquo; Grandpa said. He opened his hand. &ldquo;You do not need to wear it here. People here would not understand it. Keep it safe until you are on the reservation. Wear it then, when you put in new sage.&rdquo;</p>
+          <p>Martin took the bag. &ldquo;Thank you, Grandpa.&rdquo;</p>
+        </div></div>
+
+        <div class="para" id="p13"><div class="para-num">13</div><div class="para-body">
+          <p>That night Martin&rsquo;s parents took Grandpa to the hospital.</p>
+        </div></div>
+
+        <div class="para" id="p14"><div class="para-num">14</div><div class="para-body">
+          <p>Two weeks later, Martin stood alone on the prairie of the reservation. He opened the medicine bag and put fresh sage inside.</p>
+        </div></div>
+      </article>
+    </div>
+
+    <!-- ---------- questions ---------- -->
+    <div class="pane-questions" id="pane-questions">
+      <div class="q-wrap" id="q-wrap"></div>
+
+      <div class="submit-block">
+        <p class="hint" id="submit-hint">Some questions are still blank. They are marked in red above. You can go back, or turn it in anyway.</p>
+        <button class="btn" id="btn-submit">Turn in my test</button>
+        <button class="btn-quiet" id="btn-force" style="display:none">Turn it in anyway</button>
+        <p class="saved" id="saved-note">Your work is saved on this computer as you go.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================= DONE ================= -->
+<section class="screen" id="screen-done">
+  <div class="end-wrap">
+    <div class="dot"><svg viewBox="0 0 24 24"><polyline points="4,13 9,18 20,6"/></svg></div>
+    <h1>Turned in</h1>
+    <p id="done-line"></p>
+    <p>Your teacher has your answers. You can close this tab.</p>
+  </div>
+</section>
+
+<!-- ================= FAILED ================= -->
+<section class="screen" id="screen-fail">
+  <div class="end-wrap">
+    <div class="dot bad"><svg viewBox="0 0 24 24"><line x1="12" y1="6" x2="12" y2="14"/><line x1="12" y1="18" x2="12" y2="18"/></svg></div>
+    <h1>It did not send</h1>
+    <p>The internet connection dropped. Your answers are still here. Try again.</p>
+    <p style="margin-top:24px">
+      <button class="btn" id="btn-retry">Try again</button>
+      <button class="btn-quiet" id="btn-show">Show my answers</button>
+    </p>
+    <p style="font-size:14px">If it still will not send, raise your hand. Your teacher can copy your answers from the box below.</p>
+    <div class="dump" id="dump"></div>
+  </div>
+</section>
+
+<script>
+/* ============================================================
+   ENDPOINT — change this line if you ever redeploy the script.
+   ============================================================ */
+var ENDPOINT = "https://script.google.com/macros/s/AKfycbyQycOBzTKxzIaHrwfLBn_KR_m1s7VUu6Bv8bthiwF8rwmqXUKcIkCUSQQbbU1XKWI/exec";
+
+var STORE_KEY = "medicinebag.v2";
+
+/* ---------- item bank. No answer key lives here. ---------- */
+var PARTS = [
+  { title:"Part 1: Vocabulary in Context", pts:"4 points",
+    items:[
+      { n:1, pts:2, stem:'In paragraph [6], the doctor says Grandpa was "worn out" from the heat. In this sentence, <b>worn out</b> most nearly means',
+        opts:["extremely tired","badly sunburned","very confused","clearly frightened"] },
+      { n:2, pts:2, stem:"Paragraph [11] says soldiers sent Grandpa&rsquo;s father to a boarding school. Which detail from that paragraph tells what happened to him there?",
+        opts:["He saw the white man&rsquo;s iron in a dream one night.","He found a broken iron kettle beside a running stream.","He was put to work in the school&rsquo;s blacksmith shop.","He put a piece of iron in a bag of elk skin."] }
+    ]},
+  { title:"Part 2: Reading and Analysis", pts:"16 points",
+    items:[
+      { n:3, pts:2, stem:"What does paragraph [3] suggest about how Martin feels at the start of the story?",
+        opts:["He is proud of the picture and shows it to everyone.","He is worried the picture will not match his stories.","He has forgotten what his great-grandfather looks like.","He believes the picture belongs to his sister Cheryl."] },
+      { n:4, pts:2, stem:"In paragraph [4], Martin looks down at the sidewalk and then looks at Grandpa&rsquo;s face. What does this change show?",
+        opts:["Martin stops thinking about himself and notices Grandpa is unwell.","Martin is checking whether the neighbors are still watching him.","Martin is looking for the suitcase he set down in the street.","Martin is deciding which way to walk back to the house."] },
+      { n:5, pts:2, stem:"How does Cheryl&rsquo;s greeting in paragraph [5] compare to Martin&rsquo;s in paragraph [4]?",
+        opts:["Both children run outside to hug Grandpa right away.","Cheryl stays inside, while Martin greets Grandpa in the street.","Cheryl runs to hug him, while Martin stands still first.","Both children wait on the porch until Grandpa reaches them."] },
+      { n:6, pts:2, stem:"What do the details in paragraph [6] show about Grandpa?",
+        opts:["He made a hard journey alone at eighty-six years old.","He planned the trip carefully with help from the family.","He had visited Martin&rsquo;s city many times before this trip.","He became ill before he ever left the reservation."] },
+      { n:7, pts:2, stem:"In paragraph [7], why does Martin think about gym class and the pool?",
+        opts:["He is planning where he will keep the bag safe.","He is remembering where he last saw Grandpa&rsquo;s bag.","He is wondering whether Cheryl will want the bag.","He is imagining his friends seeing the bag on him."] },
+      { n:8, pts:2, stem:"What do Martin&rsquo;s answers in paragraph [8] show about him?",
+        opts:["He is protecting Grandpa&rsquo;s need for rest and quiet.","He is avoiding letting his friends meet Grandpa.","He is waiting until Cheryl&rsquo;s friends are finished visiting.","He is following a rule his mother gave him."] },
+      { n:9, pts:2, stem:"In paragraph [12], why does Grandpa tell Martin not to wear the bag at home?",
+        opts:["People where Martin lives would not understand it.","Martin is not old enough to take the responsibility.","The bag must stay closed until Martin has a son.","Martin&rsquo;s mother asked that it be kept out of sight."] },
+      { n:10, pts:2, stem:"Which sentence best states a theme of the story?",
+        opts:["Family traditions should be kept private from people outside the family.","People who move to a city lose the traditions they grew up with.","Real courage means being brave during a physical fight.","A person can come to value what he once wanted to hide."] }
+    ]},
+  { title:"Part 3: The Hero&rsquo;s Journey", pts:"8 points",
+    items:[
+      { n:11, pts:2, stem:"Which Hero&rsquo;s Journey role does Grandpa fill in this story?",
+        opts:["The Threshold Guardian, who blocks the hero&rsquo;s path forward","The Shapeshifter, whose loyalty to the hero keeps changing","The Herald, who brings the call and then leaves the story","The Mentor, who gives the hero knowledge and a special gift"] },
+      { n:12, pts:2, stem:"Which moment is Martin&rsquo;s Call to Adventure?",
+        opts:["Grandpa falls down on the front steps of the house. (paragraph 5)","Grandpa says it is soon time for Martin to have the bag. (paragraph 7)","Hank comes to the door with the rest of the boys. (paragraph 9)","Martin puts fresh sage in the bag on the prairie. (paragraph 14)"] },
+      { n:13, pts:2, stem:"Which moment best shows Martin crossing the threshold, or taking his first real step into the challenge?",
+        opts:["Martin stands still on the curb when he first recognizes Grandpa. (paragraph 4)","Martin stands up and walks to the bed to take the bag. (paragraph 7)","Martin tells his friends for three weeks that Grandpa is resting. (paragraph 8)","Martin lies awake the night before Grandpa gives him the bag. (paragraph 10)"] },
+      { n:14, pts:2, stem:"What is the treasure, or boon, that Martin gains by the end?",
+        opts:["The respect his friends show him out on the patio","The chance to travel back to the reservation alone","The medicine bag and the family history behind it","The stories Grandpa told about hunting the deer"] }
+    ]},
+  { title:"Part 4: Written Answers", pts:"12 points. Answer in complete sentences. Give the paragraph number for each detail you use. The sentence starters are optional.",
+    items:[
+      { n:15, pts:6, written:true,
+        stem:"How does Martin act toward Grandpa at the beginning of the story? How does he act at the end? Use two moments from the passage and give the paragraph number for each one.",
+        frame:"At the beginning, Martin ____. I know this because in paragraph [__], ____. At the end, Martin ____. I know this because in paragraph [__], ____. This change shows that ____." },
+      { n:16, pts:6, written:true,
+        stem:"Explain how Martin&rsquo;s story follows the Hero&rsquo;s Journey. Name his call, one thing that makes the journey hard for him, and what he gains by the end.",
+        frame:"Martin&rsquo;s call is ____ [__]. It is hard for him because ____ [__]. What he gains is ____ [__]. This makes him a hero because ____." }
+    ]}
+];
+
+var LETTERS = ["A","B","C","D"];
+var TOTAL_ITEMS = 16;
+var answers = {};
+var startedAt = null;
+var forceMode = false;
+
+/* ---------- storage, wrapped so a locked-down browser cannot break the test ---------- */
+function save(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      name: val("f-name"), cls: val("f-class"), startedAt: startedAt, answers: answers
+    }));
+  }catch(e){
+    document.getElementById("saved-note").textContent = "";
+  }
+}
+function load(){
+  try{
+    var raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
+function clearSave(){ try{ localStorage.removeItem(STORE_KEY); }catch(e){} }
+
+function val(id){ return document.getElementById(id).value.trim(); }
+function el(id){ return document.getElementById(id); }
+
+/* ---------- turn [7] in a stem into a clickable chip ---------- */
+function chipify(stem){
+  return stem.replace(/\[(\d{1,2})\]/g, function(_, n){
+    return '<button type="button" class="ref" data-go="'+n+'">['+n+']</button>';
+  });
+}
+
+/* ---------- build the question list ---------- */
+function render(){
+  var html = "";
+  PARTS.forEach(function(part){
+    html += '<section class="part"><h2>'+part.title+'</h2><p class="part-pts">'+part.pts+'</p>';
+    part.items.forEach(function(it){
+      html += '<div class="q" id="q-'+it.n+'" data-n="'+it.n+'">';
+      html += '<div class="q-head"><span class="q-num">'+it.n+'.</span>';
+      html += '<p class="q-stem">'+chipify(it.stem)+'</p>';
+      html += '<span class="q-pts">'+it.pts+' pts</span></div>';
+      if(it.written){
+        html += '<div class="frame"><b>Sentence starter (optional)</b>'+it.frame+'</div>';
+        html += '<textarea id="t-'+it.n+'" data-n="'+it.n+'" aria-label="Answer to question '+it.n+'"></textarea>';
+        html += '<p class="wc" id="wc-'+it.n+'">0 words</p>';
+      } else {
+        html += '<div class="opts">';
+        it.opts.forEach(function(o,i){
+          html += '<label class="opt" data-n="'+it.n+'" data-letter="'+LETTERS[i]+'">';
+          html += '<input type="radio" name="q'+it.n+'" value="'+LETTERS[i]+'">';
+          html += '<span class="opt-letter">'+LETTERS[i]+'</span><span>'+o+'</span></label>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+    html += '</section>';
+  });
+  el("q-wrap").innerHTML = html;
+
+  el("q-wrap").addEventListener("change", function(e){
+    if(e.target.type === "radio"){
+      var n = e.target.closest(".opt").dataset.n;
+      answers["q"+n] = e.target.value;
+      markPicked(n);
+      el("q-"+n).classList.remove("missing");
+      progress(); save();
+    }
+  });
+  el("q-wrap").addEventListener("input", function(e){
+    if(e.target.tagName === "TEXTAREA"){
+      var n = e.target.dataset.n;
+      answers["q"+n] = e.target.value;
+      var w = e.target.value.trim() ? e.target.value.trim().split(/\s+/).length : 0;
+      el("wc-"+n).textContent = w + (w === 1 ? " word" : " words");
+      if(e.target.value.trim()) el("q-"+n).classList.remove("missing");
+      progress(); save();
+    }
+  });
+  el("q-wrap").addEventListener("click", function(e){
+    var b = e.target.closest(".ref");
+    if(b) jumpTo(b.dataset.go);
+  });
+}
+
+function markPicked(n){
+  document.querySelectorAll('.opt[data-n="'+n+'"]').forEach(function(l){
+    l.classList.toggle("picked", l.querySelector("input").checked);
+  });
+}
+
+function jumpTo(n){
+  var p = el("p"+n);
+  if(!p) return;
+  if(window.innerWidth <= 900) setView("story");
+  p.scrollIntoView({behavior:"smooth", block:"center"});
+  p.classList.add("lit");
+  setTimeout(function(){ p.classList.remove("lit"); }, 1600);
+}
+
+function answeredCount(){
+  var c = 0;
+  for(var i=1;i<=TOTAL_ITEMS;i++){
+    var a = answers["q"+i];
+    if(a && String(a).trim()) c++;
+  }
+  return c;
+}
+function progress(){
+  var c = answeredCount();
+  el("prog-fill").style.width = (c/TOTAL_ITEMS*100)+"%";
+  el("prog-text").textContent = c + " of " + TOTAL_ITEMS + " answered";
+}
+
+function setView(v){
+  el("split").dataset.view = v;
+  el("tab-story").setAttribute("aria-pressed", v === "story");
+  el("tab-questions").setAttribute("aria-pressed", v === "questions");
+  window.scrollTo(0,0);
+}
+function show(id){
+  ["screen-start","screen-test","screen-done","screen-fail"].forEach(function(s){
+    el(s).classList.toggle("on", s === id);
+  });
+  window.scrollTo(0,0);
+}
+
+/* ---------- restore an interrupted attempt ---------- */
+function restore(){
+  var d = load();
+  if(!d || !d.answers) return;
+  el("f-name").value = d.name || "";
+  el("f-class").value = d.cls || "";
+  answers = d.answers;
+  startedAt = d.startedAt || null;
+  for(var i=1;i<=14;i++){
+    var a = answers["q"+i];
+    if(!a) continue;
+    var inp = document.querySelector('input[name="q'+i+'"][value="'+a+'"]');
+    if(inp){ inp.checked = true; markPicked(i); }
+  }
+  [15,16].forEach(function(n){
+    var t = el("t-"+n);
+    if(t && answers["q"+n]){
+      t.value = answers["q"+n];
+      var w = t.value.trim().split(/\s+/).length;
+      el("wc-"+n).textContent = w + (w === 1 ? " word" : " words");
+    }
+  });
+  if(answeredCount() > 0 && d.name){
+    el("bar-name").innerHTML = d.name + ' <span>&middot; Period ' + (d.cls||"") + '</span>';
+    progress();
+    show("screen-test");
+  }
+}
+
+/* ---------- submit ---------- */
+function payload(){
+  var mins = startedAt ? (Date.now() - new Date(startedAt).getTime())/60000 : null;
+  return {
+    name: val("f-name"),
+    classPeriod: val("f-class"),
+    started: startedAt,
+    minutes: mins ? Math.round(mins*10)/10 : null,
+    answers: answers
+  };
+}
+
+function send(){
+  var btn = el("btn-submit");
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+  fetch(ENDPOINT, {
+    method: "POST",
+    headers: {"Content-Type":"text/plain;charset=utf-8"},
+    body: JSON.stringify(payload()),
+    redirect: "follow"
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d && d.ok){
+      clearSave();
+      el("done-line").textContent =
+        "You answered " + answeredCount() + " of " + TOTAL_ITEMS + " questions. Confirmation code " + (d.id||"") + ".";
+      show("screen-done");
+    } else {
+      throw new Error(d && d.error ? d.error : "rejected");
+    }
+  })
+  .catch(function(){
+    btn.disabled = false;
+    btn.textContent = "Turn in my test";
+    el("dump").textContent = readable();
+    show("screen-fail");
+  });
+}
+
+function readable(){
+  var out = val("f-name") + "  |  Period " + val("f-class") + "\n\n";
+  for(var i=1;i<=14;i++) out += i + ". " + (answers["q"+i] || "-") + "\n";
+  out += "\n15. " + (answers.q15 || "-") + "\n\n16. " + (answers.q16 || "-");
+  return out;
+}
+
+/* ---------- wiring ---------- */
+render();
+
+el("btn-start").addEventListener("click", function(){
+  if(!val("f-name") || !val("f-class")){ el("start-hint").classList.add("on"); return; }
+  startedAt = new Date().toISOString();
+  el("bar-name").innerHTML = val("f-name") + ' <span>&middot; Period ' + val("f-class") + '</span>';
+  progress(); save();
+  show("screen-test");
+});
+
+el("btn-submit").addEventListener("click", function(){
+  if(!forceMode && answeredCount() < TOTAL_ITEMS){
+    var first = null;
+    for(var i=1;i<=TOTAL_ITEMS;i++){
+      var a = answers["q"+i];
+      if(!a || !String(a).trim()){
+        el("q-"+i).classList.add("missing");
+        if(!first) first = el("q-"+i);
+      }
+    }
+    el("submit-hint").classList.add("on");
+    el("btn-force").style.display = "inline-block";
+    forceMode = true;
+    if(window.innerWidth <= 900) setView("questions");
+    if(first) first.scrollIntoView({behavior:"smooth", block:"center"});
+    return;
+  }
+  send();
+});
+el("btn-force").addEventListener("click", send);
+el("btn-retry").addEventListener("click", function(){ show("screen-test"); send(); });
+el("btn-show").addEventListener("click", function(){ el("dump").classList.toggle("on"); });
+
+el("tab-story").addEventListener("click", function(){ setView("story"); });
+el("tab-questions").addEventListener("click", function(){ setView("questions"); });
+
+var sizes = [16,18,20,22,24], sizeIdx = 1;
+function applySize(){ document.documentElement.style.setProperty("--passage-size", sizes[sizeIdx]+"px"); }
+el("size-up").addEventListener("click", function(){ if(sizeIdx < sizes.length-1){ sizeIdx++; applySize(); } });
+el("size-down").addEventListener("click", function(){ if(sizeIdx > 0){ sizeIdx--; applySize(); } });
+
+window.addEventListener("beforeunload", function(e){
+  if(el("screen-test").classList.contains("on") && answeredCount() > 0){
+    e.preventDefault(); e.returnValue = "";
+  }
+});
+
+restore();
+</script>
+</body>
+</html>
